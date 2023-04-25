@@ -5,8 +5,8 @@
     "count": 1
   },
   {
-    "userId": 3,
-    "foodId": 5,
-    "count": 4
+    "userId": "6",
+    "foodId": "4",
+    "count": 2
   }
 ]

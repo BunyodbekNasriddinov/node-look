@@ -2,8 +2,6 @@ const http = require("http");
 const Express = require("./lib/express");
 const { read, write } = require("./utils/model");
 const PORT = 5000;
-const url = require("url");
-const querystring = require("querystring");
 
 function httpServer(req, res) {
   const app = new Express(req, res);
@@ -11,12 +9,24 @@ function httpServer(req, res) {
   // foods
   app.get("/foods", (req, res) => {
     const foods = read("foods");
-    res.writeHead(200, {
-      "Content-Type": "application/json",
-      "Access-Control-Allow-Origin": "*",
-    });
+    const { foodId } = req.query;
+    const filteredFoods = foods.filter((food) => food.foodId == foodId);
 
-    res.end(JSON.stringify(foods));
+    if (filteredFoods.length) {
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      });
+
+      res.end(JSON.stringify(filteredFoods));
+    } else {
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      });
+
+      res.end(JSON.stringify(foods));
+    }
   });
 
   /* users route 
@@ -90,19 +100,15 @@ function httpServer(req, res) {
   */
   app.get("/orders", async (req, res) => {
     const orders = read("orders");
-    const foods = read('foods')
-    console.log(req.query);
 
-    const order = orders.filter((order) => order.userId == req.query.userId);
-
-    
+    const result = orders.filter((order) => order.userId == req.query.userId);
 
     res.writeHead(200, {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*",
     });
 
-    res.end(JSON.stringify(order));
+    res.end(JSON.stringify(result));
   });
 
   /*
@@ -110,18 +116,41 @@ function httpServer(req, res) {
   */
 
   app.post("/orders", (req, res) => {
-    req.on("end", () => {
+    req.on("end", async () => {
       try {
         const orders = read("orders");
+        const { userId, foodId, count } = await req.body;
+        const findFood = orders.find((order) => order.foodId == foodId);
 
-        res.writeHead(201, {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        });
+        if (findFood) {
+          // console.log(orders);
+          findFood.count += count;
+          // console.log(orders);
 
-        res.writeHead(201, { "Content-Type": "application/json" });
+          write("orders", orders);
 
-        res.end(JSON.stringify({ status: 201, succes: true }));
+          res.writeHead(201, {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          });
+
+          res.end(JSON.stringify({ status: 201, succes: true }));
+        } else {
+          orders.push({
+            userId,
+            foodId,
+            count,
+          });
+
+          write("orders", orders);
+
+          res.writeHead(201, {
+            "Content-Type": "application/json",
+            "Access-Control-Allow-Origin": "*",
+          });
+
+          res.end(JSON.stringify({ status: 201, succes: true }));
+        }
       } catch (error) {
         res.writeHead(400, {
           "Content-Type": "application/json",
